@@ -1,0 +1,130 @@
+
+# Homework 1. MDS and PCA
+
+#### 虞俊 1401110054
+
+### MDS of cities
+Go to the following website  
+
+http://www.geobytes.com/citydistancetool.htm  
+
+Perform the following experiment.
+
++ Input a few cities (no less than 7) in your favorite, and collect the pairwise air traveling distances shown on the website in to a matrix $D$;
++ Make your own codes of Multidimensional Scaling algorithm for $D$;
++ Plot the normalized eigenvalues $\lambda_i / (\sum_i \lambda_i)$ in a descending order of magnitudes, analyze your observations (did you see any negative eigenvalues? if yes, why?);
++ Make a scatter plot of those cities using top 2 or 3 eigenvectors, and analyze your observations.  
+
+Solution:
+```{r,tidy=TRUE,fig.align='center',fig.height=5,fig.width=5}
+#Show the dataset i.e. matrix D
+data<-read.csv("F:/data/distance.csv",header=T)
+data<-data[,2:8]
+rownames(data)<-names(data)
+data
+#Classical MDS Algorithm
+D<-as.matrix(data)
+H<-diag(7)-1/7* rep(1,7)%*%t(rep(1,7))
+B<--0.5*H%*%D%*%t(H)
+lambda<-eigen(B)$value
+u<-eigen(B)$vectors
+#Plot the normalized eigenvalues
+plot(lambda/sum(lambda))
+#scatter plot of those cities using top 2 eigenvectors
+X<-u[,1:2]%*%diag(sqrt(lambda[1:2]))
+plot(X[,1],X[,2])
+
+```
+  
+  
+I didn't see any negative eigenvalues,because the place I choose are in the same country,we can regard the distance as a euclidean metric.From the second plot,we can see the distance in second plot reflect the distance in the real data matrix.  
+
+### PCA experiments
+Take any digit data (0,...,9), or all of them, from website  
+
+http://www-stat.stanford.edu/~tibs/ElemStatLearn/datasets/zip.digits/
+
+and perform PCA experiments with Matlab or other language you are familiar:
+
+
++ Set up data matrix $X=(x_1,\ldots,x_n)\in R^{p* n}$;
++ Compute the sample mean $\hat{\mu}_n$ and form $\tilde{X}= X - e \hat{\mu}_n^T$;
++ Compute top $k$ SVD of $\tilde{X} = U S_k V^T$;
++ Plot eigenvalue curve, i.e. $i$ vs. $\lambda_i (\hat{\Sigma}_n)/tr(\hat{\Sigma}_n)$ ($i=1,\ldots,k$), with top-$k$ eigenvalue $\lambda_i$ for sample covariance matrix $\hat{\Sigma}_n=\frac{1}{n}\tilde{X}*\tilde{X}^T$, which gives you explained variation of data by principal components;
++ Use imshow to visualize the mean and top-$k$ principle components as left singular vectors $U=[u_1,\ldots,u_k]$;
++ For $k=1$, sort the image data $(x_i)$ ($i=1,\ldots,n$) according to the top \emph{right} singular vectors, $v_1$, in an ascending order;
++ For $k=2$, scatter plot $(v_1,v_2)$ and select a grid on such a plane to show those images on the grid (e.g. Figure 14.23 in book [ESL]: Elements of Statistical Learning).
+  
+Solution:
+```{r,tidy=TRUE,fig.align='center',fig.height=5,fig.width=5}
+#Set up data matrix
+X<-read.csv("F:/data/train8.csv",header=F)
+X<-t(X)
+#Compute the sample mean and Xhat
+mu<-rowMeans(X)
+mu
+Xhat<-t(scale(t(X), center=T,scale=F))
+#Compute top k SVD 
+s <- svd(Xhat)
+#Plot eigenvalue curve and sample covariance matrix
+lambda<-s$d
+plot(lambda/sum(lambda))
+covmatrix<-1/nrow(X)*Xhat%*%t(Xhat)
+#
+svd1 <- svd(scale(t(X), center=T,scale=F))
+# %*% is matrix multiplication
+# Here svd1$d[1] is a constant
+approx1 <- svd1$u[,1] %*% t(svd1$v[,1]) * svd1$d[1]
+approx2 <- svd1$u[,1:2] %*% diag(svd1$d[1:2])%*% t(svd1$v[,1:2])
+# In these examples we need to make the diagonal matrix out of d
+approx5 <- svd1$u[,1:5] %*% diag(svd1$d[1:5])%*% t(svd1$v[,1:5])
+approx10 <- svd1$u[,1:10] %*% diag(svd1$d[1:10])%*% t(svd1$v[,1:10])
+approx20 <- svd1$u[,1:20] %*% diag(svd1$d[1:20])%*% t(svd1$v[,1:20])
+approx50 <- svd1$u[,1:50] %*% diag(svd1$d[1:50])%*% t(svd1$v[,1:50])
+par(mfrow=c(2,3))
+imdata<-matrix(t(X)[1,],16,16)
+image(imdata)
+imapprox1<-matrix((approx1)[1,],16,16)
+image(imapprox1,xlab="one component")
+imapprox5<-matrix((approx5)[1,],16,16)
+image(imapprox5,xlab="five component")
+imapprox10<-matrix((approx10)[1,],16,16)
+image(imapprox10,xlab="ten component")
+imapprox20<-matrix((approx20)[1,],16,16)
+image(imapprox20,xlab="twenty component")
+imapprox50<-matrix((approx50)[1,],16,16)
+image(imapprox50,xlab="fifty component")
+
+#
+par(mfrow=c(1,1))
+prom1<-mu+lambda*svd1$v[,1]
+plot(sort(prom1))
+plot(svd1$v[,1],svd1$v[,2])
+
+
+```
+
+                                        
+### Positive Semi-definiteness
+Recall that a $n$-by-$n$ real symmetric matrix $K$ is called positive semi-definite (\emph{p.s.d.} or $K\succeq 0$) iff for every $x\in R^n$, $x^T K x\geq 0$.
+
++ Show that $K\succeq 0$ if and only if its eigenvalues are all nonnegative.
++ Show that $d_{ij}=K_{ii} + K_{jj} - 2 K_{ij}$ is a squared distance function, \emph{i.e.} there exists vectors $u_i,v_j \in R^n$ ($1\leq i,j \leq n$) such that $d_{ij} = \|u_i - u_j\|^2$.
++ Let $\alpha\in R^n$ be a signed measure s.t. $\sum_i \alpha_i = 1$ (or $e^T \alpha =1$) and $H_\alpha= I - e \alpha^T$ be the Householder centering matrix. Show that $B_\alpha= - \frac{1}{2} H_\alpha D H_\alpha^T\succeq 0$.
++ If $A\succeq 0$ and $B\succeq 0$ ($A,B\in R^{n\times n}$), show that $A+B = [A_{ij} + B_{ij}]_{ij} \succeq 0$ (elementwise sum), and $A\circ B= [A_{ij} B_{ij}]_{ij} \succeq 0$ (Hadamard product or elementwise product).     
+
+Solution：
+(i)Let $AX=\lambda X,X\neq 0$,here $\lambda$ is the any eigenvalue of K.Note $K\succeq 0$,$X^TKX=\lambda X^TX \ge 0$. Obviously,$X^TX\ge 0$. So $\lambda=X^TKX/(X^TX)\ge 0$.  
+Assume all the eigenvalues of K is nonnegtive,we can assert that all the Leading minors are nonnegtive by using the eigenvalue decomposition.  
+
+(ii)Let $u_i,v_j \in R^n$ be the corresponding  eigenvector,we get the result.   
+
+(iii)Theorem 4.2 and Lemma 4.1 in the lecture note show this result directly.   
+
+
+(iv)Since $A\succeq 0$ and $B\succeq 0$,for any X,we have $X^TAX\ge 0,X^TBX\ge 0$.  So $X^T(A+B)X=X^TAX+X^TBX\ge 0$  
+Assume the rank of A,B are k and l,then 
+$$A=\Sigma_{i=1}^kv_iv_i^T,B=\Sigma_{j=1}^lw_jw_j^T$$
+then $A\circ B$ equal to $\Sigma_{i,j} u_{ij}u_{ij}^T$,here $u_{ij}=v_i \circ w_j$
+
+
